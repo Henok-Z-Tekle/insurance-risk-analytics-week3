@@ -1,0 +1,15 @@
+# Ignore dataset files (managed by DVC) and common env artifacts
+/data/
+/dvc_remote/
+# DVC cache/metadata
+.dvc/
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+env/
+venv/
+.venv/
+.env
+# Jupyter
+.ipynb_checkpoints/
