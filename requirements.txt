@@ -1,0 +1,10 @@
+pandas
+matplotlib
+seaborn
+dvc
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+dvc
