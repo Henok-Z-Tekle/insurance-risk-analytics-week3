@@ -1,9 +1,6 @@
-📘 Week 3 — Task 1: Insurance Analytics (EDA & Statistical Foundations)
+## 📘 Week 3 — Task 1: Insurance Analytics (EDA & Statistical Foundations)
 
-Author: Henok Zenebe Tekle
-Email: henok.z.tekl@gmail.com
-
-🔍 Project Overview
+## 🔍 Project Overview
 
 Task 1 focuses on developing a strong understanding of the insurance dataset through Exploratory Data Analysis (EDA) and fundamental statistical techniques. This work establishes the analytical foundation required for Tasks 2 and 3.
 
@@ -19,7 +16,7 @@ Produce meaningful visualizations
 
 Demonstrate Git/GitHub best practices
 
-📁 Repository Structure (Task 1)
+## 📁 Repository Structure (Task 1)
 ├── data/
 │   ├── insurance.csv
 │   └── processed/
@@ -38,7 +35,7 @@ Demonstrate Git/GitHub best practices
 ├── .gitignore
 └── README.md
 
-📊 Task 1 Deliverables
+# 📊 Task 1 Deliverables
 ✔ 1. Data Understanding
 
 Loaded the dataset using load_data.py.
@@ -99,7 +96,7 @@ Numerous high-charge outliers present, important for risk modeling
 
 These insights will feed directly into Task 3's statistical modeling.
 
-🖥️ Running the Code
+# 🖥️ Running the Code
 1️⃣ Preprocessing
 python src/preprocess.py
 
