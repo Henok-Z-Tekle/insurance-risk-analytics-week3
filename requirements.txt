@@ -1,10 +1,10 @@
 pandas
-matplotlib
-seaborn
-dvc
-pandas
 numpy
+scikit-learn
+xgboost        
+shap           
 matplotlib
 seaborn
-scikit-learn
 dvc
+scipy
+statsmodels
