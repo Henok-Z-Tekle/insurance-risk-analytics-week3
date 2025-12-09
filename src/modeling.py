@@ -1,3 +1,164 @@
+"""Modeling utilities: data preparation, model training, evaluation, and interpretability."""
+from __future__ import annotations
+
+import os
+from typing import Tuple, Dict, List
+
+import numpy as np
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+try:
+    import xgboost as xgb
+except Exception:
+    xgb = None
+
+try:
+    import shap
+except Exception:
+    shap = None
+
+
+def load_data(path: str = "data/processed/insurance_clean.csv") -> pd.DataFrame:
+    return pd.read_csv(path)
+
+
+def prepare_features(df: pd.DataFrame, target: str = "TotalClaims") -> Tuple[pd.DataFrame, pd.Series, ColumnTransformer]:
+    df = df.copy()
+    # Simple feature engineering: ensure claim occurrence flag
+    df["ClaimOccurred"] = (df.get("TotalClaims", 0) > 0).astype(int)
+
+    # Select candidate features - prefer columns present
+    numeric = [c for c in df.select_dtypes(include=["number"]).columns if c not in (target, "ClaimOccurred")]
+    categorical = [c for c in df.select_dtypes(include=["object", "category"]).columns]
+
+    # Build preprocess pipeline
+    numeric_pipe = Pipeline([("scaler", StandardScaler())])
+    categorical_pipe = Pipeline([("onehot", OneHotEncoder(handle_unknown="ignore", sparse=False))])
+
+    preprocessor = ColumnTransformer([
+        ("num", numeric_pipe, numeric),
+        ("cat", categorical_pipe, categorical),
+    ], remainder="drop")
+
+    X = df[numeric + categorical]
+    y = df[target]
+    return X, y, preprocessor
+
+
+def train_regressors(X_train, y_train, preprocessor) -> Dict[str, Pipeline]:
+    models: Dict[str, Pipeline] = {}
+
+    # Linear Regression
+    lr = Pipeline([("pre", preprocessor), ("lr", LinearRegression())])
+    lr.fit(X_train, y_train)
+    models["linear_regression"] = lr
+
+    # Random Forest
+    rf = Pipeline([("pre", preprocessor), ("rf", RandomForestRegressor(n_estimators=100, random_state=0))])
+    rf.fit(X_train, y_train)
+    models["random_forest"] = rf
+
+    # XGBoost if available
+    if xgb is not None:
+        xgb_pipe = Pipeline([("pre", preprocessor), ("xgb", xgb.XGBRegressor(objective="reg:squarederror", random_state=0, n_jobs=1))])
+        xgb_pipe.fit(X_train, y_train)
+        models["xgboost"] = xgb_pipe
+
+    return models
+
+
+def evaluate_regressors(models: Dict[str, Pipeline], X_test, y_test) -> Dict[str, Dict]:
+    results: Dict[str, Dict] = {}
+    for name, pipe in models.items():
+        preds = pipe.predict(X_test)
+        rmse = mean_squared_error(y_test, preds, squared=False)
+        r2 = r2_score(y_test, preds)
+        results[name] = {"rmse": float(rmse), "r2": float(r2)}
+    return results
+
+
+def feature_importance_shap(model_pipe: Pipeline, X_sample: pd.DataFrame, out_csv: str) -> List[Tuple[str, float]]:
+    """Compute SHAP values for a fitted pipeline (if shap available).
+
+    Returns list of (feature, mean_abs_shap)
+    """
+    if shap is None:
+        raise RuntimeError("shap package not available")
+
+    # Need to extract transformed feature names
+    pre = model_pipe.named_steps["pre"]
+    # transform
+    X_trans = pre.transform(X_sample)
+    # shap expects raw model, get final estimator
+    model = list(model_pipe.named_steps.values())[-1]
+    expl = shap.Explainer(model)
+    sv = expl(X_trans)
+    # mean absolute shap per feature
+    shap_vals = np.abs(sv.values).mean(axis=0)
+    # feature names from preprocessor
+    feature_names: List[str] = []
+    # numeric names
+    if hasattr(pre, "transformers_"):
+        for name, trans, cols in pre.transformers_:
+            if name == "num":
+                feature_names.extend(cols)
+            elif name == "cat":
+                # onehot encoder categories
+                ohe = trans.named_steps.get("onehot")
+                if hasattr(ohe, "get_feature_names_out"):
+                    feature_names.extend(list(ohe.get_feature_names_out(cols)))
+                else:
+                    # fallback
+                    for c in cols:
+                        feature_names.append(c)
+
+    fi = list(zip(feature_names, shap_vals.tolist()))
+    fi_sorted = sorted(fi, key=lambda x: x[1], reverse=True)
+    pd.DataFrame(fi_sorted, columns=["feature", "mean_abs_shap"]).to_csv(out_csv, index=False)
+    return fi_sorted
+
+
+def run_modeling(data_path: str = "data/processed/insurance_clean.csv", out_dir: str = "reports/modeling") -> Dict:
+    os.makedirs(out_dir, exist_ok=True)
+    df = load_data(data_path)
+    # Basic cleaning - drop rows with missing target
+    df = df.dropna(subset=["TotalClaims"]) if "TotalClaims" in df.columns else df
+
+    X, y, pre = prepare_features(df, target="TotalClaims")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+    models = train_regressors(X_train, y_train, pre)
+    evals = evaluate_regressors(models, X_test, y_test)
+
+    # SHAP for best model (lowest rmse)
+    best = min(evals.items(), key=lambda kv: kv[1]["rmse"])[0]
+    shap_csv = os.path.join(out_dir, "feature_importance_shap.csv")
+    try:
+        fi = feature_importance_shap(models[best], X_test.sample(n=min(len(X_test), 100), random_state=0), shap_csv)
+    except Exception:
+        fi = []
+
+    # save evaluation
+    pd.DataFrame(evals).T.to_csv(os.path.join(out_dir, "model_evaluation.csv"))
+    return {"evals": evals, "best_model": best, "shap_features": fi}
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run modeling pipeline")
+    parser.add_argument("--data", default="data/processed/insurance_clean.csv")
+    parser.add_argument("--out", default="reports/modeling")
+    args = parser.parse_args()
+    res = run_modeling(args.data, args.out)
+    print(res)
 # src/modeling.py
 
 """
