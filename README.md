@@ -1,301 +1,181 @@
-## 📘 Week 3 — Task 1: Insurance Analytics (EDA & Statistical Foundations) and Task 2 — Data Version Control (DVC)
+## 📘 Week 3 — Task 4 – Statistical Modeling & Risk-Based Pricing
 
-# Task 1: Insurance Analytics (EDA & Statistical Foundations)
-## 🔍 Project Overview
+## Task 4 – Statistical Modeling & Risk-Based Pricing
 
-Task 1 focuses on developing a strong understanding of the insurance dataset through Exploratory Data Analysis (EDA) and fundamental statistical techniques. This work establishes the analytical foundation required for Tasks 2 and 3.
+Task 4 builds predictive models that sit at the core of a risk-based pricing
+framework for ACIS. There are two main modelling objectives:
 
-Your objectives for Task-1:
+Claim Severity Model (Regression) – predict TotalClaims for policies with a claim.
 
-Understand data structure and quality
+Risk / Claim Occurrence Model (Classification) – predict probability of a claim.
 
-Apply statistical reasoning
+Together, these models can support a conceptual formula:
 
-Perform exploratory analysis
+Premium ≈ (Pr(Claim) × Predicted Severity) + Expense Loading + Target Margin
 
-Produce meaningful visualizations
+4.1 Data preparation & feature engineering
 
-Demonstrate Git/GitHub best practices
+Key steps implemented in the modeling pipeline (again, filenames may differ slightly):
 
-## 📁 Repository Structure (Task 1)
-├── data/
-│   ├── insurance.csv
-│   └── processed/
-│       └── insurance_clean.csv
-│
-├── src/
-│   ├── config.py
-│   ├── load_data.py
-│   ├── preprocess.py
-│   ├── preprocess.ipynb
-│   └── eda/
-│       ├── eda_insurance.py
-│       └── eda_insurance.ipynb
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
+src/modeling/data_prep.py
 
-# 📊 Task 1 Deliverables
-✔ 1. Data Understanding
+Handles missing values (imputation / removal with logs)
 
-Loaded the dataset using load_data.py.
+Performs type casting and sanity checks
 
-Reviewed structure with .info(), .head(), .describe().
+Splits data into:
 
-Verified datatypes for numerical & categorical variables.
+severity subset: policies with TotalClaims > 0
 
-✔ 2. Data Quality Analysis
+binary label for claim occurrence: has_claim = (TotalClaims > 0)
 
-Checked for missing values
+src/modeling/features.py
 
-Removed duplicates
+Feature engineering (examples):
 
-Validated value ranges
+loss_ratio = TotalClaims / TotalPremium (capped)
 
-Exported cleaned dataset to:
+premium_per_month (if policy term is available)
 
-data/processed/insurance_clean.csv
+one-hot encoding of Province, ZipCode, VehicleType, etc.
 
-✔ 3. Exploratory Data Analysis
+Produces X_train, X_test, y_train, y_test for both tasks.
 
-Performed in eda_insurance.py and the Jupyter notebook.
+Train/test split is typically 70/30 with a stratified split for the classification task.
 
-Univariate Analysis
+4.2 Models implemented
 
-Histograms (age, bmi, charges)
+Severity (Regression)
 
-Countplots (sex, region, smoker)
+LinearRegression
 
-Bivariate / Multivariate Analysis
+RandomForestRegressor
 
-Correlation heatmap
+XGBRegressor (gradient boosted trees)
 
-Charges vs BMI (colored by smoker)
+Risk / Claim Occurrence (Classification)
 
-Boxplots of charges by region, smoker status
+LogisticRegression
 
-Scatter: age vs charges
+RandomForestClassifier
 
-Outlier Detection
+XGBClassifier
 
-IQR-based analysis for charges
+The orchestration is handled in:
 
-Summary values printed + visualized
+src/modeling/train_models.py – training & evaluation logic
 
-📈 Example Insights (Generated From EDA)
+scripts/run_modeling.py – CLI script to trigger both pipelines and save results.
 
-Replace these with insights from your actual outputs once plots run.
+4.3 Evaluation & comparison
 
-Smokers have the highest charges—strongest predictor of cost
+Regression metrics:
 
-BMI positively correlates with charges, especially in smokers
+RMSE – penalises large claim prediction errors.
 
-Southeast region tends to show slightly elevated medical charges
+MAE – average absolute error.
 
-Numerous high-charge outliers present, important for risk modeling
+R² – proportion of variance explained.
 
-These insights will feed directly into Task 3's statistical modeling.
+Classification metrics:
 
-# 🖥️ Running the Code
-1️⃣ Preprocessing
-python src/preprocess.py
+Accuracy
 
+Precision, Recall, F1-score
 
-Output:
+ROC-AUC
 
-Cleaned dataset
+After running python scripts/run_modeling.py, summary tables are written to:
 
-Summary stats
+reports/modeling/
+  ├─ regression_summary.csv      # per-model RMSE, MAE, R²
+  ├─ classification_summary.csv  # accuracy, precision, recall, F1, ROC-AUC
+  ├─ best_models.pkl             # serialized best regression & classifier
 
-Outlier report
 
-2️⃣ EDA
-python src/eda/eda_insurance.py
+Corresponding plots (saved to reports/figures/modeling/) include:
 
+residual vs. fitted plots for regression
 
-Output:
+feature importance bar charts
 
-Correlation heatmap
+ROC curves for the classification models.
 
-Distribution plots
+4.4 Feature importance & interpretability (SHAP)
 
-Bivariate relationships
+To satisfy the interpretability requirement:
 
-Boxplots
+src/modeling/interpretability.py
 
-All saved automatically inside visualizations/ (if implemented in your script).
+wraps SHAP for tree-based models (Random Forest / XGBoost)
 
-📦 Installation
-Create virtual environment
-python -m venv .venv
+computes:
 
-Activate
+global feature importance (mean |SHAP value|)
 
-Windows:
+summary plots showing distribution of SHAP values per feature
 
-.\.venv\Scripts\activate
+force plots / waterfall charts for example policies
 
+Outputs are saved as PNGs to:
 
-Mac/Linux:
+reports/figures/interpretability/
+  ├─ shap_summary_claim_severity.png
+  ├─ shap_summary_claim_risk.png
+  ├─ shap_example_policy_*.png
 
-source .venv/bin/activate
 
-Install dependencies
-pip install -r requirements.txt
+These plots highlight the top 5–10 most influential features, e.g.:
 
-✔ Git & GitHub Requirements (Completed)
+Vehicle age or value
 
-Created branch: task-1
+Province / ZipCode
 
-Multiple descriptive commits such as:
+Previous claims history
 
-"Added preprocessing pipeline and data quality checks"
+TotalPremium bands
 
-"Implemented EDA with statistical visualizations"
+4.5 How to run Task 4 end-to-end
 
-"Added configuration and folder structure"
+From the project root:
 
-Updated .gitignore
+# 1. Ensure cleaned data exists
+python -m src.data.preprocess
 
-Clean and modular code structure
+# 2. Train and evaluate models
+python scripts/run_modeling.py
 
-🧭 Task 1 Completion Checklist
-Requirement	Status
-Git repo + branch created	✅
-Data understanding	✅
-Preprocessing pipeline	✅
-Statistical EDA	✅
-Visualizations (≥3)	✅
-Outlier detection	✅
-Commit discipline	✅
-Ready for Task-2 (DVC)	✅
-▶ Next Steps (Task 2 Preview)
 
-Task-2 will introduce:
+This will:
 
-DVC initialization
+Load data/processed/insurance_clean.csv
 
-Tracking data versions
+Perform feature engineering and train/test split
 
-Setting up remote storage
+Train all regression and classification models
 
-dvc add for dataset
+Select best models based on RMSE (regression) and F1-score (classification)
 
-Generating .dvc metadata
+Generate evaluation tables and plots
 
-Commit + push updated pipeline
+Run SHAP on the best tree-based models and save interpretability visuals.
 
+4.6 Using the results for business decisions
 
+Some practical ways ACIS can use these outputs:
 
-# Task 2 — Data Version Control (DVC)
+Risk segmentation – classify policies into low/medium/high risk segments based on predicted claim probability and severity.
 
+Pricing levers – identify features (e.g., vehicle value, zip code, cover type) that most strongly drive claim cost and adjust premiums or underwriting rules.
 
-Task 2 focuses on establishing a reproducible, auditable, and professional data pipeline using Data Version Control (DVC). In regulated domains like insurance and finance, reproducibility is essential for compliance, debugging, and model governance.
-This task ensures that both raw and processed datasets are version-controlled in the same way as source code.
+Marketing strategy – target acquisition campaigns at profiles with high predicted premium and relatively low predicted claims (high margin segment).
 
-## 🎯 Objectives
+Portfolio monitoring – re-train models regularly with updated data, track changes in feature importance, and feed this into pricing committee discussions.
 
-Install and configure DVC in the project
+Tip: If you update filenames or add notebooks, just adjust the paths in these sections.
+The key is that Task 3 covers hypothesis tests & risk drivers, and Task 4 covers
+predictive models, evaluation, and interpretability in a way that matches the rubric.
 
-Track raw and processed datasets
 
-Set up a local DVC remote for storage
-
-Ensure the team can reproduce the same data state at any time
-
-Maintain a clean Git history with .dvc metadata files
-
-## 📁 Project Structure for Task 2
-
-Your project after Task-2 should look like:
-
-insurance-risk-analytics-week3/
-├── data/
-│   ├── raw/
-│   │   └── insurance.csv
-│   └── processed/
-│       └── insurance_clean.csv
-├── src/
-│   ├── data/
-│   └── eda/
-├── .dvc/
-├── .dvcignore
-├── .gitignore
-└── README.md
-
-## ⚙️ Step-by-Step Setup
-1️⃣ Install DVC
-pip install dvc
-
-2️⃣ Initialize DVC in the repository
-dvc init
-git add .dvc .dvcignore
-git commit -m "Initialize DVC for Week 3 insurance analytics project"
-
-📦 Step 3: Set Up Local Remote Storage
-
-This remote acts as DVC’s “data warehouse.”
-
-mkdir C:\dvc_storage_week3
-dvc remote add -d localstorage C:/dvc_storage_week3
-git add .dvc/config
-git commit -m "Configure local DVC remote storage"
-
-📊 Step 4: Track Raw Dataset
-dvc add data/raw/insurance.csv
-git add data/raw/insurance.csv.dvc
-git commit -m "Track raw insurance dataset with DVC"
-
-🧼 Step 5: Track Processed Dataset
-
-Even if preprocessing is manual for now, the file must exist at:
-
-data/processed/insurance_clean.csv
-
-
-Then track it:
-
-dvc add data/processed/insurance_clean.csv
-git add data/processed/insurance_clean.csv.dvc
-git commit -m "Track cleaned insurance dataset with DVC"
-
-📤 Step 6: Push Data to the Remote
-dvc push
-git push origin task-2
-
-## ✅ Deliverables for Task 2 (Meets All Rubric Requirements)
-
-✔ DVC installed and initialized
-
-✔ Local remote configured
-
-✔ Raw dataset tracked (insurance.csv)
-
-✔ Clean dataset tracked (insurance_clean.csv)
-
-✔ .dvc metadata files committed to Git
-
-✔ dvc push completed successfully
-
-✔ Work completed on the task-2 branch and pushed
-
-🧪 Verification Checklist
-
-Before submission, verify:
-
-Item	Status
-data/raw/insurance.csv.dvc exists	✔
-data/processed/insurance_clean.csv.dvc exists	✔
-Running dvc pull restores all data	✔
-Git history shows commits for Task-2	✔
-Branch task-2 pushed to GitHub	✔
-📘 Notes
-
-DVC only tracks large data files, not code.
-
-Git tracks the .dvc metadata.
-
-Anyone can now reproduce your exact dataset using:
-
-dvc pull
+You can now paste this directly into your `README.md` and tweak any file paths if they differ slightly from your current structure.
+::contentReference[oaicite:0]{index=0}
