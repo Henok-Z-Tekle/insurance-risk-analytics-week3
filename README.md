@@ -1,301 +1,103 @@
-## 📘 Week 3 — Task 1: Insurance Analytics (EDA & Statistical Foundations) and Task 2 — Data Version Control (DVC)
+# 📘 Week 3 - Task 3 – A/B Hypothesis Testing (Risk Drivers)
+## Task 3 – A/B Hypothesis Testing (Risk Drivers)
 
-# Task 1: Insurance Analytics (EDA & Statistical Foundations)
-## 🔍 Project Overview
+Task 3 statistically validates or rejects key hypotheses about claim risk and margin.  
+The goal is to understand **where and for whom ACIS is taking more risk**, and use that to
+support future segmentation and pricing decisions.
 
-Task 1 focuses on developing a strong understanding of the insurance dataset through Exploratory Data Analysis (EDA) and fundamental statistical techniques. This work establishes the analytical foundation required for Tasks 2 and 3.
+### 3.1 Business questions & hypotheses
 
-Your objectives for Task-1:
+Risk is quantified using:
 
-Understand data structure and quality
+- **Claim Frequency** – proportion of policies with at least one claim
+- **Claim Severity** – average `TotalClaims` for policies with a claim
+- **Margin** – `TotalPremium - TotalClaims`
 
-Apply statistical reasoning
+Null hypotheses tested:
 
-Perform exploratory analysis
+1. **H₀₁:** There is no risk difference across **provinces**.  
+2. **H₀₂:** There is no risk difference between **zip codes**.  
+3. **H₀₃:** There is no **margin** difference between zip codes.  
+4. **H₀₄:** There is no risk difference between **women and men**.
 
-Produce meaningful visualizations
+We use α = 0.05 as the significance threshold.
 
-Demonstrate Git/GitHub best practices
+### 3.2 Implementation overview
 
-## 📁 Repository Structure (Task 1)
-├── data/
-│   ├── insurance.csv
-│   └── processed/
-│       └── insurance_clean.csv
-│
-├── src/
-│   ├── config.py
-│   ├── load_data.py
-│   ├── preprocess.py
-│   ├── preprocess.ipynb
-│   └── eda/
-│       ├── eda_insurance.py
-│       └── eda_insurance.ipynb
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
+Core components (exact filenames may differ slightly depending on refactors):
 
-# 📊 Task 1 Deliverables
-✔ 1. Data Understanding
+- `src/hypothesis_testing.py`  
+  - Helper functions to:
+    - engineer KPIs (frequency, severity, margin)
+    - create control vs. test groups for each hypothesis
+    - run the correct statistical test (χ², t-test, or z-test)
+    - format results (test statistic, p-value, effect direction)
+- `scripts/run_hypothesis_tests.py`  
+  - CLI entry point that:
+    - loads the cleaned dataset from `data/processed/insurance_clean.csv`
+    - runs all four hypotheses end-to-end
+    - prints a concise summary to the console
+    - writes detailed tables to `reports/hypothesis_tests/`
 
-Loaded the dataset using load_data.py.
+Optional exploration:
 
-Reviewed structure with .info(), .head(), .describe().
+- `notebooks/03_hypothesis_testing_insurance.ipynb`  
+  Interactive notebook that calls the same functions as the script and produces
+  supporting plots (e.g., bar charts of claim frequency by province/zip/gender).
 
-Verified datatypes for numerical & categorical variables.
+### 3.3 How to run Task 3 locally
 
-✔ 2. Data Quality Analysis
+From the project root (after activating the `venv` and installing dependencies):
 
-Checked for missing values
+```bash
+# 1. Ensure cleaned data exists
+python -m src.data.preprocess
 
-Removed duplicates
+# 2. Run all hypothesis tests
+python scripts/run_hypothesis_tests.py
+This will:
 
-Validated value ranges
+read data/processed/insurance_clean.csv
 
-Exported cleaned dataset to:
+compute Claim Frequency, Severity, and Margin
 
-data/processed/insurance_clean.csv
+perform:
 
-✔ 3. Exploratory Data Analysis
+χ² tests for categorical risk differences (province, zip, gender)
 
-Performed in eda_insurance.py and the Jupyter notebook.
+t-tests / z-tests on margin where appropriate
 
-Univariate Analysis
+save outputs to:
 
-Histograms (age, bmi, charges)
+text
+Copy code
+reports/hypothesis_tests/
+  ├─ province_risk_tests.csv
+  ├─ zipcode_risk_tests.csv
+  ├─ zipcode_margin_tests.csv
+  ├─ gender_risk_tests.csv
+3.4 Interpreting the outputs
+Each result row contains:
 
-Countplots (sex, region, smoker)
+group(s) being compared (e.g. Province = Gauteng vs Western Cape)
 
-Bivariate / Multivariate Analysis
+metric (claim_frequency, claim_severity, margin)
 
-Correlation heatmap
+test_type (chi2, t_test, z_test)
 
-Charges vs BMI (colored by smoker)
+test_statistic, p_value
 
-Boxplots of charges by region, smoker status
+significant – boolean for p_value < 0.05
 
-Scatter: age vs charges
+direction – which group is riskier / more profitable
 
-Outlier Detection
+Use this to answer:
 
-IQR-based analysis for charges
+Which provinces / zip codes have significantly higher risk?
 
-Summary values printed + visualized
+Are there gender-based differences in claim behaviour?
 
-📈 Example Insights (Generated From EDA)
+Which zip codes deliver better margin for ACIS?
 
-Replace these with insights from your actual outputs once plots run.
-
-Smokers have the highest charges—strongest predictor of cost
-
-BMI positively correlates with charges, especially in smokers
-
-Southeast region tends to show slightly elevated medical charges
-
-Numerous high-charge outliers present, important for risk modeling
-
-These insights will feed directly into Task 3's statistical modeling.
-
-# 🖥️ Running the Code
-1️⃣ Preprocessing
-python src/preprocess.py
-
-
-Output:
-
-Cleaned dataset
-
-Summary stats
-
-Outlier report
-
-2️⃣ EDA
-python src/eda/eda_insurance.py
-
-
-Output:
-
-Correlation heatmap
-
-Distribution plots
-
-Bivariate relationships
-
-Boxplots
-
-All saved automatically inside visualizations/ (if implemented in your script).
-
-📦 Installation
-Create virtual environment
-python -m venv .venv
-
-Activate
-
-Windows:
-
-.\.venv\Scripts\activate
-
-
-Mac/Linux:
-
-source .venv/bin/activate
-
-Install dependencies
-pip install -r requirements.txt
-
-✔ Git & GitHub Requirements (Completed)
-
-Created branch: task-1
-
-Multiple descriptive commits such as:
-
-"Added preprocessing pipeline and data quality checks"
-
-"Implemented EDA with statistical visualizations"
-
-"Added configuration and folder structure"
-
-Updated .gitignore
-
-Clean and modular code structure
-
-🧭 Task 1 Completion Checklist
-Requirement	Status
-Git repo + branch created	✅
-Data understanding	✅
-Preprocessing pipeline	✅
-Statistical EDA	✅
-Visualizations (≥3)	✅
-Outlier detection	✅
-Commit discipline	✅
-Ready for Task-2 (DVC)	✅
-▶ Next Steps (Task 2 Preview)
-
-Task-2 will introduce:
-
-DVC initialization
-
-Tracking data versions
-
-Setting up remote storage
-
-dvc add for dataset
-
-Generating .dvc metadata
-
-Commit + push updated pipeline
-
-
-
-# Task 2 — Data Version Control (DVC)
-
-
-Task 2 focuses on establishing a reproducible, auditable, and professional data pipeline using Data Version Control (DVC). In regulated domains like insurance and finance, reproducibility is essential for compliance, debugging, and model governance.
-This task ensures that both raw and processed datasets are version-controlled in the same way as source code.
-
-## 🎯 Objectives
-
-Install and configure DVC in the project
-
-Track raw and processed datasets
-
-Set up a local DVC remote for storage
-
-Ensure the team can reproduce the same data state at any time
-
-Maintain a clean Git history with .dvc metadata files
-
-## 📁 Project Structure for Task 2
-
-Your project after Task-2 should look like:
-
-insurance-risk-analytics-week3/
-├── data/
-│   ├── raw/
-│   │   └── insurance.csv
-│   └── processed/
-│       └── insurance_clean.csv
-├── src/
-│   ├── data/
-│   └── eda/
-├── .dvc/
-├── .dvcignore
-├── .gitignore
-└── README.md
-
-## ⚙️ Step-by-Step Setup
-1️⃣ Install DVC
-pip install dvc
-
-2️⃣ Initialize DVC in the repository
-dvc init
-git add .dvc .dvcignore
-git commit -m "Initialize DVC for Week 3 insurance analytics project"
-
-📦 Step 3: Set Up Local Remote Storage
-
-This remote acts as DVC’s “data warehouse.”
-
-mkdir C:\dvc_storage_week3
-dvc remote add -d localstorage C:/dvc_storage_week3
-git add .dvc/config
-git commit -m "Configure local DVC remote storage"
-
-📊 Step 4: Track Raw Dataset
-dvc add data/raw/insurance.csv
-git add data/raw/insurance.csv.dvc
-git commit -m "Track raw insurance dataset with DVC"
-
-🧼 Step 5: Track Processed Dataset
-
-Even if preprocessing is manual for now, the file must exist at:
-
-data/processed/insurance_clean.csv
-
-
-Then track it:
-
-dvc add data/processed/insurance_clean.csv
-git add data/processed/insurance_clean.csv.dvc
-git commit -m "Track cleaned insurance dataset with DVC"
-
-📤 Step 6: Push Data to the Remote
-dvc push
-git push origin task-2
-
-## ✅ Deliverables for Task 2 (Meets All Rubric Requirements)
-
-✔ DVC installed and initialized
-
-✔ Local remote configured
-
-✔ Raw dataset tracked (insurance.csv)
-
-✔ Clean dataset tracked (insurance_clean.csv)
-
-✔ .dvc metadata files committed to Git
-
-✔ dvc push completed successfully
-
-✔ Work completed on the task-2 branch and pushed
-
-🧪 Verification Checklist
-
-Before submission, verify:
-
-Item	Status
-data/raw/insurance.csv.dvc exists	✔
-data/processed/insurance_clean.csv.dvc exists	✔
-Running dvc pull restores all data	✔
-Git history shows commits for Task-2	✔
-Branch task-2 pushed to GitHub	✔
-📘 Notes
-
-DVC only tracks large data files, not code.
-
-Git tracks the .dvc metadata.
-
-Anyone can now reproduce your exact dataset using:
-
-dvc pull
+The reports/figures/ folder includes bar plots and confidence-interval charts that
+visually support the tabular results.
